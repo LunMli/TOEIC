@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>資通安全概論 — 陪讀系統</title>
+<style>
+:root{
+  --bg:#f6f7fb; --card:#fff; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+  --brand:#1d4ed8; --brand-soft:#dbeafe; --ok:#059669; --ok-soft:#d1fae5;
+  --bad:#dc2626; --bad-soft:#fee2e2; --warn:#d97706; --warn-soft:#fef3c7;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Microsoft JhengHei","Noto Sans TC",sans-serif;background:var(--bg);color:var(--ink);line-height:1.7}
+header{background:var(--brand);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:10}
+header h1{font-size:1.1rem;font-weight:700}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+nav button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:.95rem;font-family:inherit}
+nav button.active{background:#fff;color:var(--brand);font-weight:700}
+main{max-width:1000px;margin:0 auto;padding:20px}
+main.wide{max-width:none;padding:14px 18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+h2{font-size:1.05rem;margin-bottom:10px}
+h3{font-size:1rem;margin-bottom:6px}
+.muted{color:var(--muted);font-size:.88rem}
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.78rem;font-weight:700}
+.b-blue{background:var(--brand-soft);color:var(--brand)} .b-ok{background:var(--ok-soft);color:var(--ok)}
+.b-bad{background:var(--bad-soft);color:var(--bad)} .b-warn{background:var(--warn-soft);color:var(--warn)}
+.b-gray{background:#f3f4f6;color:var(--muted)}
+button.act{background:var(--brand);color:#fff;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:.95rem;font-family:inherit}
+button.act:disabled{opacity:.4;cursor:default}
+button.ghost{background:#fff;color:var(--brand);border:1px solid var(--brand);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:.92rem;font-family:inherit}
+button.sm{padding:4px 12px;font-size:.85rem}
+.bar{height:8px;background:#eef0f4;border-radius:99px;overflow:hidden;margin:8px 0}
+.bar>div{height:100%;background:var(--brand);border-radius:99px;transition:width .3s}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.spread{justify-content:space-between}
+/* reader */
+.reader{display:grid;grid-template-columns:240px 1fr;gap:12px}
+.toc{position:sticky;top:70px;align-self:start;max-height:calc(100vh - 90px);overflow-y:auto;padding:12px}
+.bm{display:flex;align-items:center;gap:8px;padding:8px 10px;margin-top:6px;border:1px solid var(--line);border-left:6px solid var(--bc,#1d4ed8);border-radius:8px;background:#fff;cursor:pointer;font-weight:700;font-size:.9rem;transition:transform .12s}
+.bm:hover{transform:translateX(3px)}
+.bm.open{background:var(--brand-soft);border-color:var(--brand);border-left-color:var(--bc)}
+.bm-no{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:6px;background:var(--bc,#1d4ed8);color:#fff;font-size:.78rem}
+.bm-s{display:flex;justify-content:space-between;gap:6px;padding:5px 8px 5px 24px;border-radius:6px;font-size:.86rem;color:var(--ink);cursor:pointer}
+.bm-s:hover{background:var(--brand-soft)}
+.bm-s.cur{background:var(--brand-soft);font-weight:700}
+.bm-s .pg{color:var(--muted);font-size:.78rem;white-space:nowrap}
+.pdfwrap{padding:0;overflow:hidden}
+.pdfwrap iframe{display:block;width:100%;height:calc(100vh - 110px);border:none}
+.ttsbox{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:8px;padding:8px;margin-top:8px;background:#fafbff}
+.ttsbox select{width:100%;padding:4px 6px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:.82rem}
+/* notes 重點複習 */
+.upill{min-width:34px;height:34px;border-radius:9px;border:2px solid var(--uc);background:#fff;color:var(--uc);font-weight:800;cursor:pointer;font-family:inherit;font-size:.95rem}
+.upill.on{background:var(--uc);color:#fff}
+.kp{border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:8px;background:#fff}
+.kp-h{font-weight:700;font-size:.96rem}
+.kp-b{margin-top:6px;font-size:.92rem;color:#374151;border-top:1px dashed var(--line);padding-top:6px}
+.kp-b .kpl{margin:1px 0;white-space:pre-wrap}
+.kp-b .kpl.ind{padding-left:1.5em}
+.kp.recall{cursor:pointer}
+.kp.recall .kp-b{display:none}
+.kp.recall.show .kp-b{display:block}
+.kp.recall:not(.show) .kp-h::after{content:"　👆 點我回想完看內容";font-weight:400;font-size:.78rem;color:var(--muted)}
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.page-tag{display:inline-block;background:#eef2ff;color:var(--brand);font-size:.75rem;padding:1px 9px;border-radius:6px;margin:14px 0 4px;font-weight:700}
+.ptext p{margin-bottom:.6em;font-size:1rem}
+.ptext p.bullet{padding-left:1.2em}
+/* quiz */
+.opt{display:block;width:100%;text-align:left;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:11px 14px;margin-bottom:8px;cursor:pointer;font-size:.97rem;font-family:inherit}
+.opt:hover{border-color:var(--brand)}
+.opt.sel-ok{border-color:var(--ok);background:var(--ok-soft)}
+.opt.sel-bad{border-color:var(--bad);background:var(--bad-soft)}
+.opt.reveal{border-color:var(--ok);border-style:dashed}
+.opt.picked{border-color:var(--brand);background:var(--brand-soft)}
+.opt:disabled{cursor:default}
+.expl{border-left:4px solid var(--brand);background:var(--brand-soft);padding:10px 14px;border-radius:0 8px 8px 0;margin-top:10px;font-size:.93rem}
+.qmeta{font-size:.85rem;color:var(--muted);margin-bottom:8px}
+.anskey{background:var(--ok-soft);border-radius:8px;padding:10px 14px;margin-top:10px;font-size:.95rem}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:600;font-size:.83rem}
+.due{color:var(--bad);font-weight:700}
+@media(max-width:760px){.reader{grid-template-columns:1fr}.toc{position:static;max-height:none}}
+</style>
+</head>
+<body>
+<header>
+  <h1>📖 資通安全概論 陪讀系統</h1>
+  <nav id="nav"></nav>
+</header>
+<main id="main"></main>
+
+<script>
+// 帶時間戳記載入資料檔，避免瀏覽器快取舊題庫/書本資料（本機伺服器，重載無感）
+document.write('<script src="data/units.js?v='+Date.now()+'"><\/script>');
+document.write('<script src="data/quiz.js?v='+Date.now()+'"><\/script>');
+document.write('<script src="data/notes.js?v='+Date.now()+'"><\/script>');
+</script>
+<script>
+/* ============ 狀態（localStorage） ============ */
+const KEY='iics-study-v1';
+const today=()=>new Date().toISOString().slice(0,10);
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)};
+let S=load();
+function load(){
+  try{const s=JSON.parse(localStorage.getItem(KEY));if(s)return s}catch(e){}
+  return {units:{}, wrong:[], history:[], log:[]};
+  // units[id]={read:bool, best:percent} ; wrong=[{uid,qi,due,streak}] ; history=[{date,uid,score,total}]
+}
+function save(){localStorage.setItem(KEY,JSON.stringify(S))}
+function ustate(id){return S.units[id]||(S.units[id]={read:false,best:null})}
+
+/* ============ 導覽 ============ */
+const TABS=[['dash','🏠 儀表板'],['read','📚 閱讀'],['notes','📌 重點'],['quiz','✏️ 測驗'],['review','🔁 複習'],['stats','📊 紀錄']];
+let cur='dash', readerUnit=1, quizSession=null;
+function nav(t){if(t!=='read'&&typeof tts!=='undefined'&&tts.playing)ttsStop();cur=t;render()}
+function render(){
+  document.getElementById('nav').innerHTML=TABS.map(([id,label])=>
+    `<button class="${cur===id?'active':''}" onclick="nav('${id}')">${label}</button>`).join('');
+  const m=document.getElementById('main');
+  m.classList.toggle('wide',cur==='read');
+  if(cur==='dash')m.innerHTML=vDash();
+  else if(cur==='read')m.innerHTML=vRead();
+  else if(cur==='notes')m.innerHTML=vNotes();
+  else if(cur==='quiz')m.innerHTML=vQuiz();
+  else if(cur==='review')m.innerHTML=vReview();
+  else m.innerHTML=vStats();
+  if(cur==='read')jumpRestore();
+}
+
+/* ============ 儀表板 ============ */
+function dueWrongs(){return S.wrong.filter(w=>w.due<=today())}
+function vDash(){
+  const readN=BOOK.units.filter(u=>ustate(u.id).read).length;
+  const quizN=BOOK.units.filter(u=>ustate(u.id).best!==null).length;
+  const due=dueWrongs().length;
+  let html=`<div class="card">
+    <div class="row spread"><h2>整體進度</h2><span class="muted">${today()}</span></div>
+    <div class="row" style="gap:28px">
+      <div>已讀單元 <b style="font-size:1.4rem">${readN}</b>/9</div>
+      <div>已測單元 <b style="font-size:1.4rem">${quizN}</b>/9</div>
+      <div>待複習錯題 <b style="font-size:1.4rem" class="${due?'due':''}">${due}</b></div>
+    </div>
+    <div class="bar"><div style="width:${Math.round(readN/9*100)}%"></div></div>
+    ${due?`<button class="act" onclick="startReview()">🔥 立即複習 ${due} 題到期錯題</button>`:''}
+  </div><div class="grid">`;
+  for(const u of BOOK.units){
+    const st=ustate(u.id), hasQuiz=!!(QUIZ[u.id]&&QUIZ[u.id].length);
+    const status=st.read?(st.best!==null?`<span class="badge b-ok">已讀・最佳 ${st.best}%</span>`:'<span class="badge b-blue">已讀</span>')
+      :'<span class="badge b-gray">未開始</span>';
+    html+=`<div class="card">
+      <div class="row spread"><h3>單元 ${u.id}</h3>${status}</div>
+      <div style="margin-bottom:6px">${u.title}</div>
+      <div class="muted">書頁 p.${u.pages}　${hasQuiz?`題庫 ${QUIZ[u.id].length} 題`:'題庫待生成'}</div>
+      <div class="row" style="margin-top:10px">
+        <button class="ghost sm" onclick="openUnit(${u.id})">閱讀</button>
+        ${hasQuiz?`<button class="ghost sm" onclick="startQuiz(${u.id})">考我</button>`:''}
+        <button class="ghost sm" onclick="toggleRead(${u.id})">${st.read?'標為未讀':'標為已讀'}</button>
+      </div></div>`;
+  }
+  return html+'</div>';
+}
+function toggleRead(id){const st=ustate(id);st.read=!st.read;save();render()}
+
+/* ============ 閱讀器（PDF 電子書＋章節書籤） ============ */
+const PDF_OFFSET=2; // PDF 頁 = 書頁 + 2
+const UCOLOR=['#1d4ed8','#0891b2','#059669','#d97706','#dc2626','#7c3aed','#db2777','#475569','#b45309'];
+let jumpPage=null, pdfMode=true, curPage=null;
+function vRead(){
+  const u=BOOK.units.find(x=>x.id===readerUnit);
+  if(curPage===null)curPage=u.sections[0].page;
+  let toc=`<div class="row spread" style="margin-bottom:4px">
+    <button class="ghost sm" onclick="pdfMode=!pdfMode;nav('read')">${pdfMode?'切換文字版':'切換 PDF 版'}</button>
+    <button class="ghost sm" onclick="toggleRead(${u.id})">${ustate(u.id).read?'✓ 已讀':'標為已讀'}</button></div>
+    <div id="ttsbox" class="ttsbox">${ttsBoxHTML()}</div>`;
+  for(const uu of BOOK.units){
+    const c=UCOLOR[uu.id-1];
+    toc+=`<div class="bm ${uu.id===readerUnit?'open':''}" style="--bc:${c}" onclick="openUnit(${uu.id})">
+      <span class="bm-no" style="background:${c}">${uu.id}</span><span>${uu.title}</span></div>`;
+    if(uu.id===readerUnit)
+      toc+=uu.sections.map(s=>`<div class="bm-s ${s.page===curPage?'cur':''}" onclick="goPage(${s.page})">
+        <span>${s.no} ${s.title}</span><span class="pg">p.${s.page}</span></div>`).join('');
+  }
+  let body;
+  if(pdfMode){
+    body=`<div class="card pdfwrap"><iframe id="pdfframe" src="book.pdf#page=${curPage+PDF_OFFSET}&zoom=page-width"></iframe></div>`;
+  }else{
+    body=`<div class="card"><h2 style="margin-bottom:10px">單元 ${u.id}　${u.title}</h2>`;
+    for(const pg of u.content){
+      if(!pg.paras.length)continue;
+      body+=`<div class="page-tag" id="pg${pg.p}">書頁 p.${pg.p}</div><div class="ptext">`
+        +pg.paras.map(t=>`<p class="${/^[¼h]|^\(\d+\)/.test(t)?'bullet':''}">${esc(t)}</p>`).join('')+'</div>';
+    }
+    body+='</div>';
+  }
+  return `<div class="reader"><div class="card toc">${toc}</div>${body}</div>`;
+}
+function openUnit(id){
+  if(tts.playing)ttsStop();
+  readerUnit=id;
+  curPage=BOOK.units.find(u=>u.id===id).sections[0].page;
+  if(pdfMode)nav('read');else{jumpPage=curPage;nav('read')}
+}
+function goPage(p){
+  if(tts.playing)ttsStop();
+  curPage=p;
+  if(pdfMode)nav('read'); // 重繪：書籤目前位置標記更新，iframe src 帶入新頁碼
+  else{jumpPage=p;nav('read')}
+}
+function jumpTo(p){curPage=p;jumpPage=p;nav('read')}
+function jumpRestore(){if(!pdfMode&&jumpPage){const el=document.getElementById('pg'+jumpPage);if(el)el.scrollIntoView({behavior:'smooth'});jumpPage=null}}
+
+/* ============ 重點複習 ============ */
+let notesUnit=1, recallMode=false;
+// 將重點內容逐行渲染：「標籤：」（行尾為冒號）為標頭齊頭，其下項目縮排一個字；
+// 行內「標籤：內容」或一般敘述句維持齊頭。
+function fmtBody(b){
+  b=b.replace(/。\s*§/g,'。\n§');                       // 條文摘要：每個 §條文 自成一行
+  const lines=b.split('\n');
+  const isHeader=l=>/：$/.test(l);                       // 行尾冒號＝清單標頭
+  const isTopLabel=l=>/^[^：＝（）「」『』\n]{1,16}：/.test(l); // 行內標籤＋內容＝頂層
+  let inList=false, out='';
+  for(const l of lines){
+    let cls='kpl';
+    if(isHeader(l)) inList=true;
+    else if(isTopLabel(l)) inList=false;
+    else if(inList) cls='kpl ind';
+    out+=`<div class="${cls}">${esc(l)}</div>`;
+  }
+  return out;
+}
+function vNotes(){
+  const pills=BOOK.units.map(u=>
+    `<button class="upill ${u.id===notesUnit?'on':''}" style="--uc:${UCOLOR[u.id-1]}" title="${u.title}"
+      onclick="notesUnit=${u.id};nav('notes')">${u.id}</button>`).join('');
+  const u=BOOK.units.find(x=>x.id===notesUnit), n=window.NOTES&&NOTES[notesUnit];
+  let html=`<div class="card"><div class="row spread">
+      <h2>📌 重點複習　單元 ${u.id}　${u.title}</h2>
+      <label class="row" style="gap:6px;font-size:.9rem;cursor:pointer">
+        <input type="checkbox" ${recallMode?'checked':''} onchange="recallMode=this.checked;nav('notes')">
+        🧠 回想模式（先想再看）</label></div>
+    <div class="row" style="margin-top:10px">${pills}</div></div>`;
+  if(!n){
+    html+=`<div class="card" style="text-align:center;padding:30px">
+      <div style="font-size:1.6rem">🌱</div>
+      <div>本單元重點尚未生成</div>
+      <div class="muted" style="margin-top:6px">回到 Claude 對話說「<b>生成單元${notesUnit}重點</b>」，整理好會自動出現在這裡。</div></div>`;
+    return html;
+  }
+  for(const sec of n.sections){
+    html+=`<div class="card"><div class="sec-head">
+        <h3>${sec.no}　${sec.title}</h3>
+        <button class="ghost sm" onclick="gotoBook(${notesUnit},${sec.page})">📖 翻到原文 p.${sec.page}</button></div>`;
+    for(const p of sec.points){
+      html+=`<div class="kp ${recallMode?'recall':''}" ${recallMode?`onclick="this.classList.toggle('show')"`:''}>
+        <div class="kp-h">${esc(p.h)}</div><div class="kp-b">${fmtBody(p.b)}</div></div>`;
+    }
+    html+='</div>';
+  }
+  html+=`<div class="card muted" style="font-size:.85rem">⭐＝測驗常考點。看完重點建議直接到「✏️ 測驗」考一輪，答錯會自動進複習排程。</div>`;
+  return html;
+}
+function gotoBook(uid,page){if(tts.playing)ttsStop();readerUnit=uid;curPage=page;pdfMode=true;cur='read';render()}
+
+/* ============ 朗讀（Web Speech API） ============ */
+let tts={playing:false,paused:false,queue:[],idx:0,vi:-1,rate:1};
+let zhVoices=[];
+function loadVoices(){
+  zhVoices=speechSynthesis.getVoices().filter(v=>/^zh|cmn/i.test(v.lang));
+  if(tts.vi<0&&zhVoices.length){
+    const pref=zhVoices.findIndex(v=>/HsiaoChen|HsiaoYu|HanHan|Yating|zh-TW/i.test(v.name+'|'+v.lang));
+    tts.vi=pref>=0?pref:0;
+  }
+  updTTS();
+}
+if('speechSynthesis' in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
+function ttsBoxHTML(){
+  if(!('speechSynthesis' in window))return '<span class="muted" style="font-size:.8rem">此瀏覽器不支援語音朗讀</span>';
+  const opts=zhVoices.map((v,i)=>`<option value="${i}" ${i===tts.vi?'selected':''}>${esc(v.name)}</option>`).join('');
+  const cur=tts.queue[tts.idx];
+  const st=tts.playing?`🔊 朗讀中 p.${cur?cur.p:''}（第 ${tts.idx+1}/${tts.queue.length} 段）${tts.paused?'　⏸ 已暫停':''}`:'點「朗讀本節」從目前小節開始唸';
+  return `<div class="row" style="gap:6px">
+      <button class="act sm" onclick="ttsStart()">🔊 朗讀本節</button>
+      <button class="ghost sm" onclick="ttsPause()" ${tts.playing?'':'disabled'}>${tts.paused?'▶ 繼續':'⏸ 暫停'}</button>
+      <button class="ghost sm" onclick="ttsStop()" ${tts.playing?'':'disabled'}>⏹ 停止</button></div>
+    <select onchange="tts.vi=+this.value">${opts||'<option>（找不到中文語音）</option>'}</select>
+    <div class="row" style="gap:6px"><span class="muted" style="font-size:.8rem">語速</span>
+      <input type="range" min="0.7" max="1.6" step="0.1" value="${tts.rate}" style="flex:1"
+        oninput="tts.rate=+this.value;document.getElementById('rateval').textContent=this.value">
+      <span id="rateval" class="muted" style="font-size:.8rem">${tts.rate}</span></div>
+    <div class="muted" style="font-size:.78rem;min-height:1.2em">${st}</div>`;
+}
+function updTTS(){const b=document.getElementById('ttsbox');if(b)b.innerHTML=ttsBoxHTML()}
+function ttsParas(){ // 目前小節（curPage 起）到下一小節前的段落
+  const u=BOOK.units.find(x=>x.id===readerUnit), secs=u.sections;
+  let si=0;for(let i=0;i<secs.length;i++)if(secs[i].page<=curPage)si=i;
+  const end=si+1<secs.length?secs[si+1].page-1:99999;
+  const items=[];
+  for(const pg of u.content)
+    if(pg.p>=curPage&&pg.p<=end)
+      for(const t of pg.paras){const s=ttsClean(t);if(s.length>1)items.push({p:pg.p,text:s})}
+  return items;
+}
+function ttsClean(s){
+  return s.replace(/^[¼h]+\s*/,'').replace(/^\((\d+)\)\s*/,'第$1點，')
+    .replace(/^(\d+\.\d+(\.\d+)?)\s*/,'$1。').replace(/[\t]/g,'').trim();
+}
+function ttsStart(){
+  speechSynthesis.cancel();
+  tts.queue=ttsParas();tts.idx=0;tts.playing=true;tts.paused=false;
+  if(!tts.queue.length){tts.playing=false;updTTS();return}
+  speakNext();updTTS();
+}
+function speakNext(){
+  if(!tts.playing||tts.idx>=tts.queue.length){ttsStop();return}
+  const u=new SpeechSynthesisUtterance(tts.queue[tts.idx].text);
+  if(zhVoices[tts.vi])u.voice=zhVoices[tts.vi];
+  u.lang='zh-TW';u.rate=tts.rate;
+  u.onend=()=>{if(tts.playing){tts.idx++;speakNext();updTTS()}};
+  u.onerror=()=>{if(tts.playing){tts.idx++;speakNext();updTTS()}};
+  speechSynthesis.speak(u);
+}
+function ttsPause(){
+  if(!tts.playing)return;
+  if(tts.paused){speechSynthesis.resume();tts.paused=false}
+  else{speechSynthesis.pause();tts.paused=true}
+  updTTS();
+}
+function ttsStop(){tts.playing=false;tts.paused=false;try{speechSynthesis.cancel()}catch(e){}updTTS()}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+/* ============ 測驗引擎 ============ */
+function vQuiz(){
+  if(quizSession)return vQuizQ();
+  let html='<div class="card"><h2>選擇要測驗的單元</h2><div class="muted" style="margin-bottom:10px">一次一題，答錯自動加入複習排程（+1、+3、+7、+14 天）。</div></div><div class="grid">';
+  for(const u of BOOK.units){
+    const has=!!(QUIZ[u.id]&&QUIZ[u.id].length), st=ustate(u.id);
+    html+=`<div class="card"><h3>單元 ${u.id}　${u.title}</h3>
+      <div class="muted">${has?QUIZ[u.id].length+' 題':'題庫尚未生成 — 回到 Claude 對話說「生成單元'+u.id+'題庫」'}
+      ${st.best!==null?'　最佳成績 '+st.best+'%':''}</div>
+      ${has?`<button class="act sm" style="margin-top:8px" onclick="startQuiz(${u.id})">開始測驗</button>`:''}</div>`;
+  }
+  return html+'</div>';
+}
+function startQuiz(uid){
+  const qs=QUIZ[uid].map((q,i)=>({uid,qi:i,q}));
+  shuffle(qs);
+  quizSession={mode:'quiz',uid,items:qs,idx:0,correct:0,answered:false,picks:[],results:[]};
+  cur='quiz';render();
+}
+function startReview(){
+  const due=dueWrongs();
+  if(!due.length)return;
+  const items=due.map(w=>({uid:w.uid,qi:w.qi,q:QUIZ[w.uid][w.qi],w}));
+  shuffle(items);
+  quizSession={mode:'review',items,idx:0,correct:0,answered:false,picks:[],results:[]};
+  cur='quiz';render();
+}
+function vQuizQ(){
+  const ss=quizSession;
+  if(ss.idx>=ss.items.length)return vQuizDone();
+  const it=ss.items[ss.idx], q=it.q;
+  let html=`<div class="card">
+    <div class="row spread"><span class="badge ${ss.mode==='review'?'b-warn':'b-blue'}">${ss.mode==='review'?'🔁 錯題複習':'單元 '+ss.uid+' 測驗'}</span>
+    <span class="muted">第 ${ss.idx+1} / ${ss.items.length} 題</span></div>
+    <div class="bar"><div style="width:${Math.round(ss.idx/ss.items.length*100)}%"></div></div>
+    <div class="qmeta">${q.type==='multi'?'<span class="badge b-warn">複選題</span>　選出所有正確答案後按「送出」，需全部選對':'<span class="badge b-blue">單選題</span>'}</div>
+    <h3 style="margin:10px 0">${esc(q.q)}</h3>`;
+  const L='ABCDEF';
+  if(q.type==='multi'){
+    const ansArr=q.ans;
+    html+=q.opts.map((o,i)=>{
+      let cls='opt',click='';
+      if(ss.answered){
+        const isAns=ansArr.includes(i),picked=ss.picks.includes(i);
+        if(isAns)cls+=picked?' sel-ok':' reveal';
+        else if(picked)cls+=' sel-bad';
+      }else{
+        if(ss.picks.includes(i))cls+=' picked';
+        click=`onclick="togglePick(${i})"`;
+      }
+      return `<button class="${cls}" ${ss.answered?'disabled':''} ${click}>${L[i]}. ${esc(o)}</button>`;
+    }).join('');
+    if(!ss.answered)html+=`<div style="margin-top:10px"><button class="act" ${ss.picks.length?'':'disabled'} onclick="answerMulti()">送出答案</button></div>`;
+    else html+=`<div class="expl">正解：${ansArr.map(i=>L[i]).join('、')}（虛線框＝應選未選）<br>📖 ${q.ref}　${esc(q.expl||'')}</div>`;
+  }else{
+    html+=q.opts.map((o,i)=>{
+      let cls='opt',dis=ss.answered?'disabled':'';
+      if(ss.answered){if(i===q.ans)cls+=ss.pick===i?' sel-ok':' reveal';else if(i===ss.pick)cls+=' sel-bad'}
+      return `<button class="${cls}" ${dis} onclick="answerMC(${i})">${L[i]}. ${esc(o)}</button>`;
+    }).join('');
+    if(ss.answered)html+=`<div class="expl">📖 ${q.ref}　${esc(q.expl||'')}</div>`;
+  }
+  if(ss.answered)html+=`<div style="margin-top:12px"><button class="act" onclick="nextQ()">下一題 →</button></div>`;
+  return html+'</div>';
+}
+function answerMC(i){
+  const ss=quizSession;if(ss.answered)return;
+  ss.answered=true;ss.pick=i;
+  record(ss.items[ss.idx], i===ss.items[ss.idx].q.ans);
+  render();
+}
+function togglePick(i){
+  const ss=quizSession;if(ss.answered)return;
+  ss.picks=ss.picks.includes(i)?ss.picks.filter(x=>x!==i):[...ss.picks,i];
+  render();
+}
+function answerMulti(){
+  const ss=quizSession;if(ss.answered||!ss.picks.length)return;
+  ss.answered=true;
+  const ans=[...ss.items[ss.idx].q.ans].sort().join(),got=[...ss.picks].sort().join();
+  record(ss.items[ss.idx], ans===got);
+  render();
+}
+function record(it,ok){
+  const ss=quizSession;
+  if(ok)ss.correct++;
+  ss.results.push({uid:it.uid,qi:it.qi,ok});
+  const found=S.wrong.find(w=>w.uid===it.uid&&w.qi===it.qi);
+  if(!ok){
+    if(found){found.streak=0;found.due=addDays(today(),1)}
+    else S.wrong.push({uid:it.uid,qi:it.qi,due:addDays(today(),1),streak:0});
+  }else if(found){
+    found.streak=(found.streak||0)+1;
+    if(found.streak>=2)S.wrong=S.wrong.filter(w=>w!==found);   // 連續兩次答對 → 移除
+    else found.due=addDays(today(),[3,7,14][Math.min(found.streak,2)]);
+  }
+  save();
+}
+function nextQ(){const ss=quizSession;ss.idx++;ss.answered=false;ss.pick=null;ss.picks=[];render()}
+function vQuizDone(){
+  const ss=quizSession;
+  const pct=Math.round(ss.correct/ss.items.length*100);
+  if(ss.mode==='quiz'){
+    const st=ustate(ss.uid);
+    if(st.best===null||pct>st.best)st.best=pct;
+    S.history.push({date:today(),uid:ss.uid,score:ss.correct,total:ss.items.length});
+    save();
+  }
+  const wrongN=ss.items.length-ss.correct;
+  const msg=pct===100?'💯 全對！':pct>=80?'👍 不錯，錯題已排入複習':pct>=60?'📌 及格邊緣，建議重讀後再測':'⚠️ 建議回到閱讀頁重讀本單元';
+  const html=`<div class="card" style="text-align:center;padding:36px">
+    <div style="font-size:2.6rem;font-weight:800;color:${pct>=80?'var(--ok)':pct>=60?'var(--warn)':'var(--bad)'}">${pct}%</div>
+    <div style="margin:6px 0">${ss.correct} / ${ss.items.length} 題正確　${msg}</div>
+    ${wrongN?`<div class="muted">答錯的 ${wrongN} 題已加入複習排程（明天到期）</div>`:''}
+    <div class="row" style="justify-content:center;margin-top:16px">
+      ${ss.mode==='quiz'?`<button class="ghost" onclick="startQuiz(${ss.uid})">再測一次</button>`:''}
+      <button class="act" onclick="quizSession=null;nav('dash')">回儀表板</button>
+    </div></div>`;
+  quizSession=null;
+  return html;
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}}
+
+/* ============ 複習 ============ */
+function vReview(){
+  const due=dueWrongs(), future=S.wrong.filter(w=>w.due>today()).sort((a,b)=>a.due<b.due?-1:1);
+  let html=`<div class="card"><h2>🔁 錯題複習（間隔重複）</h2>
+    <div class="muted" style="margin-bottom:10px">答錯 → 隔天再考；答對 → 間隔拉長（3、7、14 天）；連續兩次答對 → 畢業移除。</div>
+    ${due.length?`<button class="act" onclick="startReview()">開始複習 ${due.length} 題到期錯題</button>`:'<span class="badge b-ok">今天沒有到期錯題 🎉</span>'}</div>`;
+  if(S.wrong.length){
+    html+=`<div class="card"><h3>錯題清單（${S.wrong.length} 題）</h3><table>
+      <tr><th>到期日</th><th>單元</th><th>題目</th><th>連對</th></tr>`;
+    for(const w of [...due,...future]){
+      const q=QUIZ[w.uid]&&QUIZ[w.uid][w.qi];if(!q)continue;
+      html+=`<tr><td class="${w.due<=today()?'due':''}">${w.due}</td><td>單元${w.uid}</td>
+        <td>${esc(q.q.slice(0,42))}…</td><td>${w.streak||0}/2</td></tr>`;
+    }
+    html+='</table></div>';
+  }
+  return html;
+}
+
+/* ============ 紀錄 ============ */
+function vStats(){
+  let html=`<div class="card"><div class="row spread"><h2>📊 測驗紀錄</h2>
+    <div class="row"><button class="ghost sm" onclick="expData()">匯出進度</button>
+    <button class="ghost sm" onclick="document.getElementById('imp').click()">匯入進度</button>
+    <input type="file" id="imp" accept=".json" style="display:none" onchange="impData(this)">
+    <button class="ghost sm" style="color:var(--bad);border-color:var(--bad)" onclick="clearWrong()">清除錯題</button>
+    <button class="ghost sm" style="color:var(--bad);border-color:var(--bad)" onclick="clearAll()">清除全部紀錄</button></div></div>`;
+  if(!S.history.length)html+='<div class="muted">尚無測驗紀錄。</div>';
+  else{
+    html+='<table><tr><th>日期</th><th>單元</th><th>成績</th></tr>';
+    for(const h of [...S.history].reverse())
+      html+=`<tr><td>${h.date}</td><td>單元 ${h.uid}</td><td>${h.score}/${h.total}（${Math.round(h.score/h.total*100)}%）</td></tr>`;
+    html+='</table>';
+  }
+  return html+`</div><div class="card"><h3>⚠️ 資料說明</h3><div class="muted">進度存在這台電腦的瀏覽器（localStorage）。換電腦或清瀏覽器資料前，請先「匯出進度」備份。匯出的 JSON 也可以貼給 Claude 同步到 study/progress.md。</div></div>`;
+}
+function clearWrong(){
+  if(!S.wrong.length){alert('目前沒有錯題紀錄。');return;}
+  if(!confirm('確定清除「錯題清單」共 '+S.wrong.length+' 題？（測驗成績與單元進度保留）'))return;
+  S.wrong=[];save();render();
+}
+function clearAll(){
+  if(!confirm('確定清除「全部紀錄」？包含測驗成績、錯題清單、各單元已讀/最佳成績，且無法復原。建議先「匯出進度」備份。'))return;
+  S={units:{},wrong:[],history:[],log:[]};save();render();
+}
+function expData(){
+  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='iics-progress-'+today()+'.json';a.click();
+}
+function impData(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{S=JSON.parse(r.result);save();render();alert('匯入完成')}catch(e){alert('檔案格式錯誤')}};
+  r.readAsText(f);
+}
+render();
+</script>
+</body>
+</html>
